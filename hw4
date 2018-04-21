@@ -1,1 +1,46 @@
+#
+#A perl script to search PROSITE pattern in a fasta file.
+#
 
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+sub PROSITE_to_regexp {
+  my($pattern) = @_;
+  my $regexp = $pattern;
+  $regexp =~ s/.$//;
+  $regexp =~ s/x/./g;
+  $regexp =~ s/\[G\>\]/(G|\$)/;
+  $regexp =~ s/{([A-Z]+)}/[^$1]/g;
+  $regexp =~ s/-//g;
+  $regexp =~ s/"//g;
+  $regexp =~ s/\((\d+)\)/{$1}/g;
+  $regexp =~ s/\((\d+,\d+)\)/{$1}/g;
+  $regexp =~ s/\>/\$/;
+  
+  return $regexp;
+}
+my ($pattern_input, $filename) = @ARGV;
+my $regexp =  PROSITE_to_regexp($pattern_input);
+my %seq = ();
+my $id = '';
+open(my $DATABASE,$filename)||die("open $filename error!\n");
+$/ = '>';
+while(<$DATABASE>) {
+		s/[\r\n]//g;
+		if($_ =~ /^([A-Z|a-z|0-9].+[0-9]+\.[0-9])/){
+			$id = $1;
+		}else{
+			$seq{$id} .= $_;
+		}
+		foreach my $value(%seq){
+			if (/$regexp/) {
+			    print("$id\n");
+			    last;
+			}
+		}
+	}
+
+exit;
